@@ -2,11 +2,11 @@
 #include <string>
 #include <wsserver/server.h>
 #include <wsvideo-ffmpeg/middlewares/callback.h>
-
+#include <wsvideo-ffmpeg/middlewares/ffmpeg.h>
 #include <wsvideo-ffmpeg/subprocess.h>
 
 WebSocketServer  server;
-VideoBroadcaster boardcaster;
+VideoBroadcaster broadcaster;
 
 CallbackMiddleware libcamera;
 FFMPEGMiddleware   ffmpeg;
@@ -17,13 +17,15 @@ void onCameraData (std::string data) {
 
 int main () {
     server.init(5420);
-    boardcaster = VideoBroadcaster(&server, "flux.mp4");
+    broadcaster = VideoBroadcaster(&server, "flux.mp4");
 
     while (!server.listen()) continue ;
 
-    libcamera = CallbackMiddleware( subprocess( "libcamera-vid", "libcamera-vid", "-t", "0", "-o", "-" ), onCameraData );
+    auto u = onCameraData;
 
-    ffmpeg.init(&broadcaster, 25);
+    libcamera = CallbackMiddleware( subprocess( "libcamera-vid", "libcamera-vid", "-t", "0", "-o", "-" ), u );
+
+    ffmpeg.init(&broadcaster);
     ffmpeg.getPipe()->useBlocking(false);
 
     while (true) {
